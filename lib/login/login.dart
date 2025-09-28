@@ -1,16 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:culture_connect/auth_service.dart';
+import 'package:provider/provider.dart';
+import 'package:culture_connect/theme_provider.dart';
+import '../forgot_password.dart';
+import 'package:culture_connect/login/signup.dart';
 
 class LoginPage extends StatefulWidget {
-  final bool isDarkMode;
-  final VoidCallback onToggle;  // for dark/light
-  final VoidCallback switchPage; // for signup
-
-  const LoginPage({
-    super.key,
-    required this.isDarkMode,
-    required this.onToggle,
-    required this.switchPage,
-  });
+  const LoginPage({super.key});
 
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -24,22 +20,34 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
+
     setState(() => _isLoading = true);
-    try {
-      await Future.delayed(const Duration(seconds: 2));
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text("Login successful ✅")));
-    } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text("Login failed ❌: $e")));
-    } finally {
+
+    final auth = AuthService();
+    final result = await auth.login(_emailController.text, _passwordController.text);
+
+    if (mounted) {
+      if (result == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Login successful 🎉")),
+        );
+        // TODO: Navigate to Home page
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Login failed ❌: $result")),
+        );
+      }
+    }
+
+    if (mounted) {
       setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final String bgImage = widget.isDarkMode
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final String bgImage = themeProvider.isDarkMode
         ? 'assets/images/bg_dark.png'
         : 'assets/images/background.png';
 
@@ -47,24 +55,19 @@ class _LoginPageState extends State<LoginPage> {
       body: Stack(
         fit: StackFit.expand,
         children: [
+          // Layer 1: Background Image
           Image.asset(bgImage, fit: BoxFit.cover),
-          Container(
-            color: widget.isDarkMode
-                ? Colors.black.withOpacity(0.5)
-                : Colors.white.withOpacity(0.3),
-          ),
-          Positioned(
-            top: 40,   // adjust for safe area
-            right: 16,
-            child: IconButton(
-              icon: Icon(
-                widget.isDarkMode ? Icons.wb_sunny : Icons.nightlight_round,
-                color: widget.isDarkMode ? Colors.yellow : Colors.black,
-              ),
-              onPressed: widget.onToggle,
-              iconSize: 30,
+
+          // Layer 2: Transparent Overlay (set to ignore taps)
+          IgnorePointer(
+            child: Container(
+              color: themeProvider.isDarkMode
+                  ? Colors.black.withOpacity(0.5)
+                  : Colors.white.withOpacity(0.3),
             ),
           ),
+
+          // Layer 3: The scrollable login form
           SingleChildScrollView(
             child: Padding(
               padding: const EdgeInsets.all(24),
@@ -77,7 +80,7 @@ class _LoginPageState extends State<LoginPage> {
                     style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
-                      color: widget.isDarkMode ? Colors.white : Colors.black,
+                      color: themeProvider.isDarkMode ? Colors.white : Colors.black,
                     ),
                   ),
                   const SizedBox(height: 30),
@@ -107,19 +110,43 @@ class _LoginPageState extends State<LoginPage> {
                           validator: (value) =>
                           value!.isEmpty ? "Enter your password" : null,
                         ),
-                        const SizedBox(height: 30),
+                        const SizedBox(height: 10),
+
+                        // 🔹 Forgot Password button
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) => const ForgotPasswordPage()),
+                              );
+                            },
+                            child: const Text("Forgot Password?"),
+                          ),
+                        ),
+
+                        const SizedBox(height: 20),
                         _isLoading
                             ? const CircularProgressIndicator()
                             : ElevatedButton(
                           onPressed: _login,
                           style: ElevatedButton.styleFrom(
-                            minimumSize: const Size(double.infinity, 50),
+                            minimumSize:
+                            const Size(double.infinity, 50),
                           ),
                           child: const Text("Login"),
                         ),
                         const SizedBox(height: 20),
                         TextButton(
-                          onPressed: widget.switchPage,
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const SignupPage()),
+                            );
+                          },
                           child: const Text("Don't have an account? Sign up"),
                         ),
                       ],
@@ -127,6 +154,26 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ],
               ),
+            ),
+          ),
+
+          // Layer 4: The Theme Toggle Button (now on top and clickable)
+          Positioned(
+            top: 40,
+            right: 16,
+            child: IconButton(
+              icon: Icon(
+                themeProvider.isDarkMode
+                    ? Icons.wb_sunny
+                    : Icons.nightlight_round,
+                color: themeProvider.isDarkMode ? Colors.yellow : Colors.black,
+              ),
+              // In login.dart, inside the final Positioned widget
+              onPressed: () {
+                print('--- LOGIN PAGE BUTTON WAS PRESSED ---');
+                Provider.of<ThemeProvider>(context, listen: false).toggleTheme();
+              },
+              iconSize: 30,
             ),
           ),
         ],
