@@ -1,3 +1,4 @@
+import 'package:culture_connect/pages/home_page.dart';
 import 'package:flutter/material.dart';
 import 'package:culture_connect/auth_service.dart';
 import 'package:provider/provider.dart';
@@ -28,8 +29,7 @@ class _LoginPageState extends State<LoginPage> {
 
     if (mounted) {
       if (result == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Login successful 🎉")),
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const HomePage()),
         );
         // TODO: Navigate to Home page
       } else {

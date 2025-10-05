@@ -3,6 +3,7 @@ import 'package:culture_connect/login/login.dart';
 import 'package:flutter/material.dart';
 import 'package:culture_connect/theme_provider.dart';
 import 'package:provider/provider.dart';
+import '../auth_service.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
@@ -19,7 +20,52 @@ class _SignupPageState extends State<SignupPage> {
   bool _isLoading = false;
 
   Future<void> _signup() async {
-    // ... your signup logic remains the same
+    // 1. Validate the form fields first
+    if (!_formKey.currentState!.validate()) return;
+
+    // 1a. Add check for password matching
+    if (_passwordController.text != _confirmPasswordController.text) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Passwords do not match!")),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    // 2. Instantiate the AuthService (assuming the class is the same)
+    final auth = AuthService();
+
+    // 3. Call the dedicated sign-up method in your AuthService
+    // NOTE: You must ensure AuthService has a method called 'signup'
+    final result = await auth.signup(
+        _emailController.text,
+        _passwordController.text
+    );
+
+    if (mounted) {
+      if (result == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Registration successful! You can now log in.")),
+        );
+
+        // 4. On successful registration, navigate to the Login page
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const LoginPage()),
+        );
+
+      } else {
+        // 5. Show Firebase error message (e.g., 'weak-password')
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Sign Up failed ❌: $result")),
+        );
+      }
+    }
+
+    if (mounted) {
+      setState(() => _isLoading = false);
+    }
   }
 
   @override
