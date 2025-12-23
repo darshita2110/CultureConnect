@@ -1,0 +1,224 @@
+{
+  "cities": [
+    {
+      "id": "delhi",
+      "name": "Delhi",
+      "state": "Delhi",
+      "latitude": 28.6139,
+      "longitude": 77.2090,
+      "image": "assets/images/cities/delhi.jpg",
+      "description": "The capital city of India, Delhi is a vibrant metropolis blending ancient heritage with modern progress.",
+      "famous_for": ["Red Fort", "Qutub Minar", "India Gate", "Lotus Temple"],
+      "best_time": "October to March"
+    },
+    {
+      "id": "mumbai",
+      "name": "Mumbai",
+      "state": "Maharashtra",
+      "latitude": 19.0760,
+      "longitude": 72.8777,
+      "image": "assets/images/cities/mumbai.jpg",
+      "description": "The financial capital of India, Mumbai is known for its vibrant culture and Bollywood.",
+      "famous_for": ["Gateway of India", "Marine Drive", "Elephanta Caves", "Bollywood"],
+      "best_time": "November to February"
+    },
+    {
+      "id": "jaipur",
+      "name": "Jaipur",
+      "state": "Rajasthan",
+      "latitude": 26.9124,
+      "longitude": 75.7873,
+      "image": "assets/images/cities/jaipur.jpg",
+      "description": "The Pink City of India, Jaipur is famous for its royal palaces and vibrant culture.",
+      "famous_for": ["Amber Fort", "Hawa Mahal", "City Palace", "Jantar Mantar"],
+      "best_time": "November to February"
+    },
+    {
+      "id": "varanasi",
+      "name": "Varanasi",
+      "state": "Uttar Pradesh",
+      "latitude": 25.3176,
+      "longitude": 82.9739,
+      "image": "assets/images/cities/varanasi.jpg",
+      "description": "One of the oldest living cities in the world, Varanasi is the spiritual capital of India.",
+      "famous_for": ["Ganges Ghats", "Kashi Vishwanath Temple", "Sarnath", "Evening Aarti"],
+      "best_time": "October to March"
+    },
+    {
+      "id": "agra",
+      "name": "Agra",
+      "state": "Uttar Pradesh",
+      "latitude": 27.1767,
+      "longitude": 78.0081,
+      "image": "assets/images/cities/agra.jpg",
+      "description": "Home to the magnificent Taj Mahal, one of the Seven Wonders of the World.",
+      "famous_for": ["Taj Mahal", "Agra Fort", "Fatehpur Sikri", "Mehtab Bagh"],
+      "best_time": "October to March"
+    },
+    {
+      "id": "kolkata",
+      "name": "Kolkata",
+      "state": "West Bengal",
+      "latitude": 22.5726,
+      "longitude": 88.3639,
+      "image": "assets/images/cities/kolkata.jpg",
+      "description": "The cultural capital of India, Kolkata is known for its art, literature, and festivals.",
+      "famous_for": ["Victoria Memorial", "Howrah Bridge", "Durga Puja", "Indian Museum"],
+      "best_time": "October to March"
+    },
+    {
+      "id": "bangalore",
+      "name": "Bangalore",
+      "state": "Karnataka",
+      "latitude": 12.9716,
+      "longitude": 77.5946,
+      "image": "assets/images/cities/bangalore.jpg",
+      "description": "The Silicon Valley of India, Bangalore is known for its pleasant weather and IT industry.",
+      "famous_for": ["Lalbagh Garden", "Bangalore Palace", "Cubbon Park", "ISKCON Temple"],
+      "best_time": "October to February"
+    },
+    {
+      "id": "chennai",
+      "name": "Chennai",
+      "state": "Tamil Nadu",
+      "latitude": 13.0827,
+      "longitude": 80.2707,
+      "image": "assets/images/cities/chennai.jpg",
+      "description": "The gateway to South India, Chennai is known for its rich cultural heritage.",
+      "famous_for": ["Marina Beach", "Kapaleeshwarar Temple", "Fort St. George", "Mahabalipuram"],
+      "best_time": "November to February"
+    },
+    {
+      "id": "hyderabad",
+      "name": "Hyderabad",
+      "state": "Telangana",
+      "latitude": 17.3850,
+      "longitude": 78.4867,
+      "image": "assets/images/cities/hyderabad.jpg",
+      "description": "The City of Pearls, Hyderabad blends historic charm with modern IT prowess.",
+      "famous_for": ["Charminar", "Golconda Fort", "Hussain Sagar", "Biryani"],
+      "best_time": "October to February"
+    },
+    {
+      "id": "udaipur",
+      "name": "Udaipur",
+      "state": "Rajasthan",
+      "latitude": 24.5854,
+      "longitude": 73.7125,
+      "image": "assets/images/cities/udaipur.jpg",
+      "description": "The City of Lakes, Udaipur is famous for its romantic setting and royal heritage.",
+      "famous_for": ["City Palace", "Lake Pichola", "Jag Mandir", "Jagdish Temple"],
+      "best_time": "September to March"
+    },
+    {
+      "id": "amritsar",
+      "name": "Amritsar",
+      "state": "Punjab",
+      "latitude": 31.6340,
+      "longitude": 74.8723,
+      "image": "assets/images/cities/amritsar.jpg",
+      "description": "Home to the Golden Temple, Amritsar is the spiritual center of Sikhism.",
+      "famous_for": ["Golden Temple", "Jallianwala Bagh", "Wagah Border", "Punjabi Culture"],
+      "best_time": "November to March"
+    },
+    {
+      "id": "goa",
+      "name": "Goa",
+      "state": "Goa",
+      "latitude": 15.2993,
+      "longitude": 74.1240,
+      "image": "assets/images/cities/goa.jpg",
+      "description": "India's beach paradise, known for its Portuguese heritage and vibrant nightlife.",
+      "famous_for": ["Beaches", "Churches", "Seafood", "Water Sports"],
+      "best_time": "November to February"
+    },
+    {
+      "id": "mysore",
+      "name": "Mysore",
+      "state": "Karnataka",
+      "latitude": 12.2958,
+      "longitude": 76.6394,
+      "image": "assets/images/cities/mysore.jpg",
+      "description": "The City of Palaces, Mysore is known for its royal heritage and silk sarees.",
+      "famous_for": ["Mysore Palace", "Chamundi Hills", "Dasara Festival", "Silk Sarees"],
+      "best_time": "October to February"
+    },
+    {
+      "id": "kochi",
+      "name": "Kochi",
+      "state": "Kerala",
+      "latitude": 9.9312,
+      "longitude": 76.2673,
+      "image": "assets/images/cities/kochi.jpg",
+      "description": "The Queen of Arabian Sea, Kochi is a major port city with a multicultural heritage.",
+      "famous_for": ["Chinese Fishing Nets", "Fort Kochi", "Backwaters", "Kathakali"],
+      "best_time": "September to May"
+    },
+    {
+      "id": "ayodhya",
+      "name": "Ayodhya",
+      "state": "Uttar Pradesh",
+      "latitude": 26.7922,
+      "longitude": 82.1998,
+      "image": "assets/images/cities/ayodhya.jpg",
+      "description": "The birthplace of Lord Rama, Ayodhya is one of the most sacred cities in Hinduism.",
+      "famous_for": ["Ram Janmabhoomi", "Hanuman Garhi", "Kanak Bhawan", "Saryu River"],
+      "best_time": "October to March"
+    },
+    {
+      "id": "ahmedabad",
+      "name": "Ahmedabad",
+      "state": "Gujarat",
+      "latitude": 23.0225,
+      "longitude": 72.5714,
+      "image": "assets/images/cities/ahmedabad.jpg",
+      "description": "India's first UNESCO World Heritage City, known for its textile industry.",
+      "famous_for": ["Sabarmati Ashram", "Adalaj Stepwell", "Akshardham Temple", "Kankaria Lake"],
+      "best_time": "November to February"
+    },
+    {
+      "id": "pushkar",
+      "name": "Pushkar",
+      "state": "Rajasthan",
+      "latitude": 26.4899,
+      "longitude": 74.5511,
+      "image": "assets/images/cities/pushkar.jpg",
+      "description": "A holy town famous for the Pushkar Camel Fair and Brahma Temple.",
+      "famous_for": ["Pushkar Lake", "Brahma Temple", "Camel Fair", "Ghats"],
+      "best_time": "October to March"
+    },
+    {
+      "id": "rishikesh",
+      "name": "Rishikesh",
+      "state": "Uttarakhand",
+      "latitude": 30.0869,
+      "longitude": 78.2676,
+      "image": "assets/images/cities/rishikesh.jpg",
+      "description": "The Yoga Capital of the World, nestled in the Himalayas.",
+      "famous_for": ["Lakshman Jhula", "Ram Jhula", "Yoga Centers", "River Rafting"],
+      "best_time": "September to November, March to May"
+    },
+    {
+      "id": "mathura",
+      "name": "Mathura",
+      "state": "Uttar Pradesh",
+      "latitude": 27.4924,
+      "longitude": 77.6737,
+      "image": "assets/images/cities/mathura.jpg",
+      "description": "The birthplace of Lord Krishna, famous for Holi celebrations.",
+      "famous_for": ["Krishna Janmabhoomi", "Dwarkadhish Temple", "Holi Festival", "Vrindavan"],
+      "best_time": "October to March"
+    },
+    {
+      "id": "haridwar",
+      "name": "Haridwar",
+      "state": "Uttarakhand",
+      "latitude": 29.9457,
+      "longitude": 78.1642,
+      "image": "assets/images/cities/haridwar.jpg",
+      "description": "One of the seven holiest places in Hinduism, gateway to the Char Dham.",
+      "famous_for": ["Har Ki Pauri", "Ganga Aarti", "Kumbh Mela", "Temples"],
+      "best_time": "October to February"
+    }
+  ]
+}
