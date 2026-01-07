@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:culture_connect/auth_service.dart';
 import 'package:provider/provider.dart';
 import 'package:culture_connect/theme_provider.dart';
-import '../forgot_password.dart';
+import 'forgot_password.dart';
 import 'package:culture_connect/login/signup.dart';
 
 class LoginPage extends StatefulWidget {

@@ -3,9 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:provider/provider.dart';
 import '../theme_provider.dart';
-import '../models/city_model.dart';
-import '../services/city_service.dart';
-import 'city_detail_page.dart';
+import '../data/indian_cities.dart';
+import 'city_detail_page_simple.dart';
 import 'journal_page.dart';
 
 class HomePage extends StatefulWidget {
@@ -16,28 +15,24 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin {
-  List<City> cities = [];
-  City? selectedCity;
-  bool isLoading = true;
+  List<Map<String, dynamic>> cities = [];
+  Map<String, dynamic>? selectedCity;
 
   final List<Map<String, String>> festivalCards = [
     {
       "name": "Diwali",
       "place": "Ayodhya",
       "image": "assets/images/diwali_ayodhya.png",
-      "description": "Festival of Lights"
     },
     {
       "name": "Holi",
       "place": "Mathura",
       "image": "assets/images/goverdhan_mathura.png",
-      "description": "Festival of Colors"
     },
     {
       "name": "Pushkar Fair",
       "place": "Pushkar",
       "image": "assets/images/chattpuja_bihar.png",
-      "description": "Camel Fair & Cultural Festival"
     },
   ];
 
@@ -54,41 +49,8 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     _fadeAnimation = CurvedAnimation(parent: _animController!, curve: Curves.easeIn);
     _animController!.forward();
 
-    _loadCities();
-  }
-
-  Future<void> _loadCities() async {
-    try {
-      print('🔍 Starting to load cities...');
-      final loadedCities = await CityService.loadCities();
-      print('✅ Loaded ${loadedCities.length} cities');
-
-      if (loadedCities.isEmpty) {
-        print('⚠️ WARNING: No cities loaded!');
-      } else {
-        print('📍 First city: ${loadedCities[0].name}');
-      }
-
-      setState(() {
-        cities = loadedCities;
-        isLoading = false;
-      });
-    } catch (e) {
-      print('❌ Error loading cities: $e');
-      setState(() {
-        isLoading = false;
-      });
-
-      // Show error to user
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error loading cities: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
+    // Load cities from simple list (no API call needed!)
+    cities = IndianCities.getAllCities();
   }
 
   @override
@@ -97,14 +59,13 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     super.dispose();
   }
 
-  void _navigateToCityDetail(City city) {
+  void _navigateToCityDetail(Map<String, dynamic> city) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => CityDetailPage(city: city),
+        builder: (context) => CityDetailPageSimple(city: city),
       ),
     ).then((_) {
-      // Reset selection when coming back
       setState(() {
         selectedCity = null;
       });
@@ -130,11 +91,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
         title: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.celebration,
-              color: Colors.orange,
-              size: 28,
-            ),
+            Icon(Icons.celebration, color: Colors.orange, size: 28),
             const SizedBox(width: 8),
             ShaderMask(
               shaderCallback: (bounds) => LinearGradient(
@@ -176,6 +133,9 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
               'assets/images/bg_home.png',
               fit: BoxFit.cover,
               alignment: Alignment.center,
+              errorBuilder: (context, error, stackTrace) => Container(
+                color: themeProvider.isDarkMode ? Colors.black : Colors.white,
+              ),
             ),
           ),
 
@@ -208,9 +168,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 ? const SizedBox.shrink()
                 : FadeTransition(
               opacity: _fadeAnimation!,
-              child: isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : SingleChildScrollView(
+              child: SingleChildScrollView(
                 child: Column(
                   children: [
                     const SizedBox(height: 20),
@@ -239,39 +197,33 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                             ),
                           ],
                         ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(20),
-                          child: BackdropFilter(
-                            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  "Discover India's Rich Heritage",
-                                  style: TextStyle(
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.bold,
-                                    color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  "Explore festivals, traditions, and cultural treasures",
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: themeProvider.isDarkMode ? Colors.white70 : Colors.black54,
-                                  ),
-                                ),
-                              ],
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Discover India's Rich Heritage",
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                              ),
                             ),
-                          ),
+                            const SizedBox(height: 8),
+                            Text(
+                              "Powered by AI - Real-time cultural insights",
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: themeProvider.isDarkMode ? Colors.white70 : Colors.black54,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
 
                     const SizedBox(height: 30),
 
-                    // Featured Festivals Carousel
+                    // Festival Carousel
                     Padding(
                       padding: const EdgeInsets.only(left: 24),
                       child: Align(
@@ -295,7 +247,6 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                         enlargeCenterPage: true,
                         viewportFraction: 0.85,
                         autoPlayInterval: const Duration(seconds: 4),
-                        autoPlayCurve: Curves.easeInOutCubic,
                       ),
                       items: festivalCards.map((festival) {
                         return Container(
@@ -314,7 +265,6 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                             borderRadius: BorderRadius.circular(25),
                             child: Stack(
                               children: [
-                                // Festival Image
                                 Positioned.fill(
                                   child: Image.asset(
                                     festival['image']!,
@@ -326,7 +276,6 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                                         ),
                                   ),
                                 ),
-                                // Gradient Overlay
                                 Positioned.fill(
                                   child: Container(
                                     decoration: BoxDecoration(
@@ -341,7 +290,6 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                                     ),
                                   ),
                                 ),
-                                // Text Content
                                 Positioned(
                                   bottom: 20,
                                   left: 20,
@@ -376,18 +324,6 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                                     ],
                                   ),
                                 ),
-                                // Border
-                                Positioned.fill(
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(25),
-                                      border: Border.all(
-                                        color: Colors.white.withOpacity(0.3),
-                                        width: 2,
-                                      ),
-                                    ),
-                                  ),
-                                ),
                               ],
                             ),
                           ),
@@ -403,13 +339,33 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            "🏛️ Explore by City",
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
-                            ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                "🏛️ Explore by City",
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.orange,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  '${cities.length} cities',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 15),
                           Container(
@@ -432,7 +388,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                               ],
                             ),
                             child: DropdownButtonHideUnderline(
-                              child: DropdownButton<City>(
+                              child: DropdownButton<Map<String, dynamic>>(
                                 value: selectedCity,
                                 hint: Text(
                                   "Select Your City",
@@ -455,7 +411,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                                   fontWeight: FontWeight.w500,
                                 ),
                                 items: cities.map((city) {
-                                  return DropdownMenuItem<City>(
+                                  return DropdownMenuItem<Map<String, dynamic>>(
                                     value: city,
                                     child: Row(
                                       children: [
@@ -463,7 +419,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                                         const SizedBox(width: 10),
                                         Expanded(
                                           child: Text(
-                                            city.name,
+                                            city['name'],
                                             overflow: TextOverflow.ellipsis,
                                           ),
                                         ),
@@ -471,7 +427,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                                     ),
                                   );
                                 }).toList(),
-                                onChanged: (City? value) {
+                                onChanged: (Map<String, dynamic>? value) {
                                   if (value != null) {
                                     _navigateToCityDetail(value);
                                   }

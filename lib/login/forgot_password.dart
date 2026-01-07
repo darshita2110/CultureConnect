@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'auth_service.dart';
+import '../auth_service.dart';
 import 'dart:math' as math;
 
 class ForgotPasswordPage extends StatefulWidget {

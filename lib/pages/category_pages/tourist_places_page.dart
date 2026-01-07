@@ -1,385 +1,284 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../models/city_detail_model.dart';
-import '../../services/firestore_city_service.dart';
 import '../../theme_provider.dart';
+import '../../services/gemini_service.dart';
 
-class TouristPlacesPage extends StatelessWidget {
-  final String cityId;
-  final String cityName;
+class TouristPlacesPageSimple extends StatefulWidget {
+  final Map<String, dynamic> city;
 
-  const TouristPlacesPage({
-    super.key,
-    required this.cityId,
-    required this.cityName,
-  });
+  const TouristPlacesPageSimple({super.key, required this.city});
+
+  @override
+  State<TouristPlacesPageSimple> createState() => _TouristPlacesPageSimpleState();
+}
+
+class _TouristPlacesPageSimpleState extends State<TouristPlacesPageSimple> {
+  List<Map<String, dynamic>> places = [];
+  bool isLoading = true;
+  String? error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPlaces();
+  }
+
+  Future<void> _loadPlaces() async {
+    try {
+      setState(() {
+        isLoading = true;
+        error = null;
+      });
+
+      final data = await GeminiService.generateTouristPlaces(widget.city['name']);
+
+      setState(() {
+        places = data;
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        error = 'Failed to load data';
+        isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
 
     return Scaffold(
-      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        leading: IconButton(
-          icon: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.3),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(Icons.arrow_back, color: Colors.white),
+        title: Text('${widget.city['name']} Tourist Places'),
+        backgroundColor: Colors.green,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadPlaces,
+            tooltip: 'Regenerate with AI',
           ),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          'Tourist Places',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 24,
-          ),
-        ),
-        centerTitle: true,
+        ],
       ),
-      body: Stack(
-        children: [
-          // Background gradient
-          Positioned.fill(
-            child: Container(
+      body: isLoading
+          ? const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(color: Colors.green),
+            SizedBox(height: 20),
+            Text('AI is generating tourist places...'),
+          ],
+        ),
+      )
+          : error != null
+          ? Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 60, color: Colors.red),
+            const SizedBox(height: 20),
+            Text(error!),
+            ElevatedButton(
+              onPressed: _loadPlaces,
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      )
+          : SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // AI Generated Badge
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: themeProvider.isDarkMode
-                      ? [Colors.green.shade900, Colors.black]
-                      : [Colors.teal.shade100, Colors.white],
+                gradient: const LinearGradient(
+                  colors: [Colors.purple, Colors.blue],
                 ),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Icon(Icons.auto_awesome, size: 16, color: Colors.white),
+                  SizedBox(width: 6),
+                  Text(
+                    'AI Generated Content',
+                    style: TextStyle(color: Colors.white, fontSize: 12),
+                  ),
+                ],
               ),
             ),
-          ),
 
-          // Main content
-          SafeArea(
-            child: FutureBuilder<CityDetail?>(
-              future: FirestoreCityService.getCityDetail(cityId),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(
-                    child: CircularProgressIndicator(color: Colors.green),
-                  );
-                }
+            const SizedBox(height: 20),
 
-                if (!snapshot.hasData || snapshot.data!.touristPlaces.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.tour, size: 80, color: Colors.grey),
-                        const SizedBox(height: 20),
-                        Text(
-                          'No tourist places data available',
-                          style: TextStyle(
-                            fontSize: 18,
-                            color: themeProvider.isDarkMode
-                                ? Colors.white70
-                                : Colors.black54,
-                          ),
+            Text(
+              'Top ${places.length} Must-Visit Places',
+              style: const TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Places List
+            ...places.asMap().entries.map((entry) {
+              final index = entry.key;
+              final place = entry.value;
+
+              return Card(
+                margin: const EdgeInsets.only(bottom: 16),
+                elevation: 4,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header with number
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Colors.green.shade400, Colors.teal.shade400],
                         ),
-                      ],
-                    ),
-                  );
-                }
-
-                final places = snapshot.data!.touristPlaces;
-
-                return SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      const SizedBox(height: 20),
-
-                      // Header Card
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: Container(
-                          padding: const EdgeInsets.all(24),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                Colors.green.shade400,
-                                Colors.teal.shade400
-                              ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            borderRadius: BorderRadius.circular(25),
-                            border: Border.all(
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(15),
+                          topRight: Radius.circular(15),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
                               color: Colors.white.withOpacity(0.3),
-                              width: 2,
+                              borderRadius: BorderRadius.circular(10),
                             ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.teal.withOpacity(0.4),
-                                blurRadius: 20,
-                                offset: const Offset(0, 10),
-                              ),
-                            ],
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(15),
-                                ),
-                                child: const Icon(
-                                  Icons.place,
-                                  size: 40,
+                            child: Center(
+                              child: Text(
+                                '${index + 1}',
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
                                   color: Colors.white,
                                 ),
                               ),
-                              const SizedBox(width: 20),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              place['name'] ?? '',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                          const Icon(
+                            Icons.location_on,
+                            color: Colors.white,
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Content
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Description
+                          Text(
+                            place['description'] ?? '',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[700],
+                              height: 1.5,
+                            ),
+                          ),
+
+                          const SizedBox(height: 16),
+
+                          // Info Row
+                          Row(
+                            children: [
                               Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Explore $cityName',
-                                      style: const TextStyle(
-                                        fontSize: 22,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 5),
-                                    Text(
-                                      '${places.length} Must-Visit Places',
-                                      style: const TextStyle(
-                                        color: Colors.white70,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                  ],
+                                child: _buildInfoChip(
+                                  icon: Icons.access_time,
+                                  label: 'Timings',
+                                  value: place['timings'] ?? 'N/A',
+                                  color: Colors.blue,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: _buildInfoChip(
+                                  icon: Icons.currency_rupee,
+                                  label: 'Entry Fee',
+                                  value: place['entry_fee'] ?? 'N/A',
+                                  color: Colors.green,
                                 ),
                               ),
                             ],
                           ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 30),
-
-                      // Places List
-                      ...places.asMap().entries.map((entry) {
-                        return _buildPlaceCard(
-                          entry.value,
-                          entry.key,
-                          themeProvider,
-                        );
-                      }).toList(),
-
-                      const SizedBox(height: 30),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPlaceCard(
-      TouristPlace place,
-      int index,
-      ThemeProvider themeProvider,
-      ) {
-    final gradients = [
-      [Colors.green.shade300, Colors.teal.shade300],
-      [Colors.blue.shade300, Colors.cyan.shade300],
-      [Colors.orange.shade300, Colors.amber.shade300],
-      [Colors.purple.shade300, Colors.pink.shade300],
-      [Colors.red.shade300, Colors.orange.shade300],
-    ];
-
-    final gradient = gradients[index % gradients.length];
-
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: BoxDecoration(
-        color: themeProvider.isDarkMode ? Colors.grey[900] : Colors.white,
-        borderRadius: BorderRadius.circular(25),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header with gradient and number
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: gradient,
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(25),
-                topRight: Radius.circular(25),
-              ),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: Center(
-                    child: Text(
-                      '${index + 1}',
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Text(
-                    place.name,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(
-                    Icons.location_on,
-                    color: Colors.white,
-                    size: 24,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Content
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Description
-                Text(
-                  place.description,
-                  style: TextStyle(
-                    fontSize: 15,
-                    height: 1.6,
-                    color: themeProvider.isDarkMode
-                        ? Colors.white70
-                        : Colors.grey[700],
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                // Info Cards Row
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildInfoCard(
-                        icon: Icons.access_time,
-                        title: 'Timings',
-                        value: place.timings,
-                        color: Colors.blue,
-                        themeProvider: themeProvider,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildInfoCard(
-                        icon: Icons.currency_rupee,
-                        title: 'Entry Fee',
-                        value: place.entryFee,
-                        color: Colors.green,
-                        themeProvider: themeProvider,
+                        ],
                       ),
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
-        ],
+              );
+            }).toList(),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildInfoCard({
+  Widget _buildInfoChip({
     required IconData icon,
-    required String title,
+    required String label,
     required String value,
     required Color color,
-    required ThemeProvider themeProvider,
   }) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(
-          color: color.withOpacity(0.3),
-        ),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withOpacity(0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon, color: color, size: 18),
+              Icon(icon, size: 16, color: color),
               const SizedBox(width: 6),
               Text(
-                title,
+                label,
                 style: TextStyle(
                   fontSize: 12,
+                  color: Colors.grey[600],
                   fontWeight: FontWeight.w600,
-                  color: themeProvider.isDarkMode
-                      ? Colors.white70
-                      : Colors.grey[600],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Text(
             value,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.bold,
-              color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
             ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
