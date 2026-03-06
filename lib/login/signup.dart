@@ -1,4 +1,3 @@
-// Corrected SignupPage.dart
 import 'package:culture_connect/login/login.dart';
 import 'package:flutter/material.dart';
 import 'package:culture_connect/theme_provider.dart';
@@ -16,54 +15,52 @@ class _SignupPageState extends State<SignupPage> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+  TextEditingController();
   bool _isLoading = false;
+  bool _isPasswordVisible = false;
+  bool _isConfirmPasswordVisible = false;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
 
   Future<void> _signup() async {
-    // 1. Validate the form fields first
     if (!_formKey.currentState!.validate()) return;
 
-    // 1a. Add check for password matching
     if (_passwordController.text != _confirmPasswordController.text) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Passwords do not match!")),
+        const SnackBar(content: Text('Passwords do not match!')),
       );
       return;
     }
 
     setState(() => _isLoading = true);
 
-    // 2. Instantiate the AuthService (assuming the class is the same)
     final auth = AuthService();
-
-    // 3. Call the dedicated sign-up method in your AuthService
-    // NOTE: You must ensure AuthService has a method called 'signup'
     final result = await auth.signup(
-        _emailController.text,
-        _passwordController.text
-    );
+        _emailController.text.trim(), _passwordController.text);
 
     if (mounted) {
       if (result == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Registration successful! You can now log in.")),
+          const SnackBar(
+              content:
+              Text('Registration successful! You can now log in.')),
         );
-
-        // 4. On successful registration, navigate to the Login page
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const LoginPage()),
         );
-
       } else {
-        // 5. Show Firebase error message (e.g., 'weak-password')
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Sign Up failed ❌: $result")),
+          SnackBar(content: Text('Sign Up failed ❌: $result')),
         );
       }
-    }
-
-    if (mounted) {
       setState(() => _isLoading = false);
     }
   }
@@ -100,11 +97,13 @@ class _SignupPageState extends State<SignupPage> {
                 children: [
                   const SizedBox(height: 120),
                   Text(
-                    "Sign Up",
+                    'Sign Up',
                     style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
-                      color: themeProvider.isDarkMode ? Colors.white : Colors.black,
+                      color: themeProvider.isDarkMode
+                          ? Colors.white
+                          : Colors.black,
                     ),
                   ),
                   const SizedBox(height: 30),
@@ -112,40 +111,106 @@ class _SignupPageState extends State<SignupPage> {
                     key: _formKey,
                     child: Column(
                       children: [
-                        // ... All your TextFormFields and Buttons for signup
+                        // Email
                         TextFormField(
                           controller: _emailController,
-                          decoration: const InputDecoration(labelText: "Email", prefixIcon: Icon(Icons.email), border: OutlineInputBorder()),
-                          validator: (value) => value!.isEmpty ? "Enter your email" : null,
+                          keyboardType: TextInputType.emailAddress,
+                          decoration: const InputDecoration(
+                            labelText: 'Email',
+                            prefixIcon: Icon(Icons.email),
+                            border: OutlineInputBorder(),
+                          ),
+                          validator: (value) =>
+                          value!.isEmpty ? 'Enter your email' : null,
                         ),
                         const SizedBox(height: 20),
+
+                        // Password with eye toggle
                         TextFormField(
                           controller: _passwordController,
-                          obscureText: true,
-                          decoration: const InputDecoration(labelText: "Password", prefixIcon: Icon(Icons.lock), border: OutlineInputBorder()),
-                          validator: (value) => value!.isEmpty ? "Enter your password" : null,
+                          obscureText: !_isPasswordVisible,
+                          decoration: InputDecoration(
+                            labelText: 'Password',
+                            prefixIcon: const Icon(Icons.lock),
+                            border: const OutlineInputBorder(),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _isPasswordVisible
+                                    ? Icons.visibility
+                                    : Icons.visibility_off,
+                                color: Colors.grey,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _isPasswordVisible = !_isPasswordVisible;
+                                });
+                              },
+                            ),
+                          ),
+                          validator: (value) {
+                            if (value!.isEmpty) return 'Enter your password';
+                            if (value.length < 6) {
+                              return 'Password must be at least 6 characters';
+                            }
+                            return null;
+                          },
                         ),
                         const SizedBox(height: 20),
+
+                        // Confirm Password with eye toggle
                         TextFormField(
                           controller: _confirmPasswordController,
-                          obscureText: true,
-                          decoration: const InputDecoration(labelText: "Confirm Password", prefixIcon: Icon(Icons.lock_outline), border: OutlineInputBorder()),
-                          validator: (value) => value!.isEmpty ? "Confirm your password" : null,
+                          obscureText: !_isConfirmPasswordVisible,
+                          decoration: InputDecoration(
+                            labelText: 'Confirm Password',
+                            prefixIcon: const Icon(Icons.lock_outline),
+                            border: const OutlineInputBorder(),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _isConfirmPasswordVisible
+                                    ? Icons.visibility
+                                    : Icons.visibility_off,
+                                color: Colors.grey,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _isConfirmPasswordVisible =
+                                  !_isConfirmPasswordVisible;
+                                });
+                              },
+                            ),
+                          ),
+                          validator: (value) =>
+                          value!.isEmpty
+                              ? 'Confirm your password'
+                              : null,
                         ),
                         const SizedBox(height: 30),
+
+                        // Sign Up Button
                         _isLoading
                             ? const CircularProgressIndicator()
                             : ElevatedButton(
                           onPressed: _signup,
-                          style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 50)),
-                          child: const Text("Sign Up"),
+                          style: ElevatedButton.styleFrom(
+                            minimumSize:
+                            const Size(double.infinity, 50),
+                          ),
+                          child: const Text('Sign Up'),
                         ),
                         const SizedBox(height: 20),
+
+                        // Login link
                         TextButton(
                           onPressed: () {
-                            Navigator.push(context, MaterialPageRoute(builder: (context) => const LoginPage()));
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const LoginPage()),
+                            );
                           },
-                          child: const Text("Already have an account? Login"),
+                          child:
+                          const Text('Already have an account? Login'),
                         ),
                       ],
                     ),
@@ -155,18 +220,22 @@ class _SignupPageState extends State<SignupPage> {
             ),
           ),
 
-          // Layer 4: Button (now on top)
+          // Layer 4: Theme Toggle
           Positioned(
             top: 40,
             right: 16,
             child: IconButton(
               icon: Icon(
-                themeProvider.isDarkMode ? Icons.wb_sunny : Icons.nightlight_round,
-                color: themeProvider.isDarkMode ? Colors.yellow : Colors.black,
+                themeProvider.isDarkMode
+                    ? Icons.wb_sunny
+                    : Icons.nightlight_round,
+                color: themeProvider.isDarkMode
+                    ? Colors.yellow
+                    : Colors.black,
               ),
               onPressed: () {
-                print('--- SIGNUP PAGE BUTTON WAS PRESSED ---');
-                Provider.of<ThemeProvider>(context, listen: false).toggleTheme();
+                Provider.of<ThemeProvider>(context, listen: false)
+                    .toggleTheme();
               },
               iconSize: 30,
             ),

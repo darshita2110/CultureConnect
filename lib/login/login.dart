@@ -12,13 +12,20 @@ class LoginPage extends StatefulWidget {
   @override
   State<LoginPage> createState() => _LoginPageState();
 }
-bool _isPasswordVisible = false;
 
 class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _isLoading = false;
+  bool _isPasswordVisible = false;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
 
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
@@ -26,21 +33,20 @@ class _LoginPageState extends State<LoginPage> {
     setState(() => _isLoading = true);
 
     final auth = AuthService();
-    final result = await auth.login(_emailController.text, _passwordController.text);
+    final result = await auth.login(
+        _emailController.text.trim(), _passwordController.text);
 
     if (mounted) {
       if (result == null) {
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const HomePage()),
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomePage()),
         );
-        // TODO: Navigate to Home page
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Login failed ❌: $result")),
+          SnackBar(content: Text('Login failed ❌: $result')),
         );
       }
-    }
-
-    if (mounted) {
       setState(() => _isLoading = false);
     }
   }
@@ -59,7 +65,7 @@ class _LoginPageState extends State<LoginPage> {
           // Layer 1: Background Image
           Image.asset(bgImage, fit: BoxFit.cover),
 
-          // Layer 2: Transparent Overlay (set to ignore taps)
+          // Layer 2: Transparent Overlay
           IgnorePointer(
             child: Container(
               color: themeProvider.isDarkMode
@@ -68,7 +74,7 @@ class _LoginPageState extends State<LoginPage> {
             ),
           ),
 
-          // Layer 3: The scrollable login form
+          // Layer 3: Scrollable login form
           SingleChildScrollView(
             child: Padding(
               padding: const EdgeInsets.all(24),
@@ -77,11 +83,13 @@ class _LoginPageState extends State<LoginPage> {
                 children: [
                   const SizedBox(height: 120),
                   Text(
-                    "Login",
+                    'Login',
                     style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
-                      color: themeProvider.isDarkMode ? Colors.white : Colors.black,
+                      color: themeProvider.isDarkMode
+                          ? Colors.white
+                          : Colors.black,
                     ),
                   ),
                   const SizedBox(height: 30),
@@ -89,31 +97,48 @@ class _LoginPageState extends State<LoginPage> {
                     key: _formKey,
                     child: Column(
                       children: [
+                        // Email Field
                         TextFormField(
                           controller: _emailController,
+                          keyboardType: TextInputType.emailAddress,
                           decoration: const InputDecoration(
-                            labelText: "Email",
+                            labelText: 'Email',
                             prefixIcon: Icon(Icons.email),
                             border: OutlineInputBorder(),
                           ),
                           validator: (value) =>
-                          value!.isEmpty ? "Enter your email" : null,
+                          value!.isEmpty ? 'Enter your email' : null,
                         ),
                         const SizedBox(height: 20),
+
+                        // Password Field with eye toggle
                         TextFormField(
                           controller: _passwordController,
-                          obscureText: true,
-                          decoration: const InputDecoration(
-                            labelText: "Password",
-                            prefixIcon: Icon(Icons.lock),
-                            border: OutlineInputBorder(),
+                          obscureText: !_isPasswordVisible,
+                          decoration: InputDecoration(
+                            labelText: 'Password',
+                            prefixIcon: const Icon(Icons.lock),
+                            border: const OutlineInputBorder(),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _isPasswordVisible
+                                    ? Icons.visibility
+                                    : Icons.visibility_off,
+                                color: Colors.grey,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _isPasswordVisible = !_isPasswordVisible;
+                                });
+                              },
+                            ),
                           ),
                           validator: (value) =>
-                          value!.isEmpty ? "Enter your password" : null,
+                          value!.isEmpty ? 'Enter your password' : null,
                         ),
                         const SizedBox(height: 10),
 
-                        // 🔹 Forgot Password button
+                        // Forgot Password
                         Align(
                           alignment: Alignment.centerRight,
                           child: TextButton(
@@ -121,14 +146,17 @@ class _LoginPageState extends State<LoginPage> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                    builder: (_) => const ForgotPasswordPage()),
+                                    builder: (_) =>
+                                    const ForgotPasswordPage()),
                               );
                             },
-                            child: const Text("Forgot Password?"),
+                            child: const Text('Forgot Password?'),
                           ),
                         ),
 
                         const SizedBox(height: 20),
+
+                        // Login Button
                         _isLoading
                             ? const CircularProgressIndicator()
                             : ElevatedButton(
@@ -137,9 +165,12 @@ class _LoginPageState extends State<LoginPage> {
                             minimumSize:
                             const Size(double.infinity, 50),
                           ),
-                          child: const Text("Login"),
+                          child: const Text('Login'),
                         ),
+
                         const SizedBox(height: 20),
+
+                        // Sign Up link
                         TextButton(
                           onPressed: () {
                             Navigator.push(
@@ -148,7 +179,8 @@ class _LoginPageState extends State<LoginPage> {
                                   builder: (_) => const SignupPage()),
                             );
                           },
-                          child: const Text("Don't have an account? Sign up"),
+                          child: const Text(
+                              "Don't have an account? Sign up"),
                         ),
                       ],
                     ),
@@ -158,7 +190,7 @@ class _LoginPageState extends State<LoginPage> {
             ),
           ),
 
-          // Layer 4: The Theme Toggle Button (now on top and clickable)
+          // Layer 4: Theme Toggle
           Positioned(
             top: 40,
             right: 16,
@@ -167,12 +199,12 @@ class _LoginPageState extends State<LoginPage> {
                 themeProvider.isDarkMode
                     ? Icons.wb_sunny
                     : Icons.nightlight_round,
-                color: themeProvider.isDarkMode ? Colors.yellow : Colors.black,
+                color:
+                themeProvider.isDarkMode ? Colors.yellow : Colors.black,
               ),
-              // In login.dart, inside the final Positioned widget
               onPressed: () {
-                print('--- LOGIN PAGE BUTTON WAS PRESSED ---');
-                Provider.of<ThemeProvider>(context, listen: false).toggleTheme();
+                Provider.of<ThemeProvider>(context, listen: false)
+                    .toggleTheme();
               },
               iconSize: 30,
             ),

@@ -1,19 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../theme_provider.dart';
 import '../../services/gemini_service.dart';
+import '../../services/unsplash_service.dart';
+import '../../theme_provider.dart';
 
-class HistoryPageSimple extends StatefulWidget {
+class HistoryPageEnhanced extends StatefulWidget {
   final Map<String, dynamic> city;
 
-  const HistoryPageSimple({super.key, required this.city});
+  const HistoryPageEnhanced({super.key, required this.city});
 
   @override
-  State<HistoryPageSimple> createState() => _HistoryPageSimpleState();
+  State<HistoryPageEnhanced> createState() => _HistoryPageEnhancedState();
 }
 
-class _HistoryPageSimpleState extends State<HistoryPageSimple> {
+class _HistoryPageEnhancedState extends State<HistoryPageEnhanced> {
   Map<String, dynamic>? historyData;
+  Map<String, String?> periodImages = {};
   bool isLoading = true;
   String? error;
 
@@ -36,11 +38,32 @@ class _HistoryPageSimpleState extends State<HistoryPageSimple> {
         historyData = data;
         isLoading = false;
       });
+
+      _loadImages();
     } catch (e) {
       setState(() {
-        error = 'Failed to load data';
+        error = 'Failed to load history data';
         isLoading = false;
       });
+    }
+  }
+
+  Future<void> _loadImages() async {
+    if (historyData == null) return;
+
+    final timeline = (historyData!['timeline'] as List?) ?? [];
+    for (var period in timeline) {
+      final periodName = period['period'] ?? '';
+      final keywords = period['image_keywords'] ??
+          '${period['era_name']} ${widget.city['name']} history';
+      final imageUrl = await UnsplashService.searchImage(keywords);
+
+      if (mounted) {
+        setState(() {
+          periodImages[periodName] = imageUrl;
+        });
+      }
+      await Future.delayed(const Duration(milliseconds: 150));
     }
   }
 
@@ -49,168 +72,404 @@ class _HistoryPageSimpleState extends State<HistoryPageSimple> {
     final themeProvider = Provider.of<ThemeProvider>(context);
 
     return Scaffold(
+      backgroundColor: themeProvider.isDarkMode ? Colors.grey[900] : Colors.amber[50],
       appBar: AppBar(
         title: Text('${widget.city['name']} History'),
-        backgroundColor: Colors.amber.shade700,
+        backgroundColor: Colors.amber[700],
+        elevation: 0,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadHistoryData,
-            tooltip: 'Regenerate with AI',
+            tooltip: 'Regenerate',
           ),
         ],
       ),
       body: isLoading
-          ? const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircularProgressIndicator(color: Colors.amber),
-            SizedBox(height: 20),
-            Text('AI is generating history data...'),
-          ],
-        ),
-      )
+          ? _buildLoadingState()
           : error != null
-          ? Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, size: 60, color: Colors.red),
-            const SizedBox(height: 20),
-            Text(error!),
-            ElevatedButton(
-              onPressed: _loadHistoryData,
-              child: const Text('Retry'),
-            ),
-          ],
-        ),
-      )
-          : SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // AI Generated Badge
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Colors.purple, Colors.blue],
-                ),
-                borderRadius: BorderRadius.circular(20),
+          ? _buildErrorState()
+          : _buildContent(themeProvider),
+    );
+  }
+
+  Widget _buildLoadingState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircularProgressIndicator(color: Colors.amber),
+          SizedBox(height: 20),
+          Text(
+            'Traveling through time...',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.error_outline, size: 60, color: Colors.red),
+          SizedBox(height: 20),
+          Text(error!, style: TextStyle(fontSize: 16)),
+          SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: _loadHistoryData,
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.amber),
+            child: const Text('Retry'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContent(ThemeProvider themeProvider) {
+    final overview = historyData!['overview'] ?? '';
+    final significance = historyData!['significance'] ?? '';
+    final timeline = (historyData!['timeline'] as List?) ?? [];
+    final modernEra = historyData!['modern_era'] ?? '';
+    final heritageSites = (historyData!['heritage_sites'] as List?) ?? [];
+
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Hero Header
+          Container(
+            width: double.infinity,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Colors.amber[700]!, Colors.orange[600]!],
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: const [
-                  Icon(Icons.auto_awesome, size: 16, color: Colors.white),
-                  SizedBox(width: 6),
-                  Text(
-                    'AI Generated Content',
-                    style: TextStyle(color: Colors.white, fontSize: 12),
+            ),
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(Icons.history_edu, color: Colors.white, size: 32),
+                    ),
+                    SizedBox(width: 15),
+                    Expanded(
+                      child: Text(
+                        'Historical Journey',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                if (historyData!['ancient_name'] != null) ...[
+                  SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    child: Text(
+                      'Ancient Name: ${historyData!['ancient_name']}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.white,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+
+          SizedBox(height: 24),
+
+          // Overview Card
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 10,
+                    offset: Offset(0, 4),
                   ),
                 ],
               ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.info_outline, color: Colors.amber[700], size: 24),
+                      SizedBox(width: 10),
+                      Text(
+                        'Historical Overview',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.amber[700],
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    overview,
+                    style: TextStyle(
+                      fontSize: 15,
+                      height: 1.7,
+                      color: themeProvider.isDarkMode ? Colors.grey[300] : Colors.grey[800],
+                    ),
+                  ),
+                  if (significance.isNotEmpty) ...[
+                    SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.amber.withOpacity(0.3)),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(Icons.star, color: Colors.amber[700], size: 20),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Significance',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.amber[700],
+                                  ),
+                                ),
+                                SizedBox(height: 6),
+                                Text(
+                                  significance,
+                                  style: TextStyle(fontSize: 14, height: 1.5),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ),
+          ),
 
-            const SizedBox(height: 20),
+          SizedBox(height: 32),
 
-            // Overview
-            Card(
-              elevation: 4,
-              child: Padding(
-                padding: const EdgeInsets.all(16),
+          // Timeline Title
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                Icon(Icons.timeline, color: Colors.blue, size: 28),
+                SizedBox(width: 10),
+                Text(
+                  'Historical Timeline',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          SizedBox(height: 20),
+
+          // Timeline
+          ...timeline.asMap().entries.map((entry) {
+            final index = entry.key;
+            final period = entry.value;
+            final isLast = index == timeline.length - 1;
+            return _buildTimelineItem(period, index, isLast, themeProvider);
+          }).toList(),
+
+          // Modern Era
+          if (modernEra.isNotEmpty) ...[
+            SizedBox(height: 32),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.green.withOpacity(0.2), Colors.teal.withOpacity(0.2)],
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.green.withOpacity(0.5)),
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.info_outline, color: Colors.amber.shade700),
-                        const SizedBox(width: 10),
-                        const Text(
-                          'Historical Overview',
+                        Icon(Icons.trending_up, color: Colors.green, size: 24),
+                        SizedBox(width: 10),
+                        Text(
+                          'Modern Era',
                           style: TextStyle(
-                            fontSize: 18,
+                            fontSize: 20,
                             fontWeight: FontWeight.bold,
+                            color: Colors.green,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
+                    SizedBox(height: 12),
                     Text(
-                      historyData!['overview'] ?? '',
-                      style: TextStyle(
-                        fontSize: 15,
-                        height: 1.6,
-                        color: Colors.grey[700],
-                      ),
+                      modernEra,
+                      style: TextStyle(fontSize: 15, height: 1.6),
                     ),
                   ],
                 ),
               ),
             ),
+          ],
 
-            const SizedBox(height: 30),
-
-            // Timeline Title
-            const Text(
-              '📜 Historical Timeline',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
+          // Heritage Sites
+          if (heritageSites.isNotEmpty) ...[
+            SizedBox(height: 32),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.museum, color: Colors.red, size: 24),
+                      SizedBox(width: 10),
+                      Text(
+                        'Heritage Sites',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 12),
+                  ...heritageSites.map((site) {
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.red.withOpacity(0.3)),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.red.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(Icons.verified, color: Colors.red, size: 20),
+                          ),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  site['name'] ?? '',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                SizedBox(height: 4),
+                                Text(
+                                  '${site['status']} (${site['year_inscribed']})',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ],
               ),
             ),
-
-            const SizedBox(height: 20),
-
-            // Timeline
-            ...((historyData!['timeline'] as List?) ?? []).asMap().entries.map((entry) {
-              final index = entry.key;
-              final period = entry.value;
-              final isLast = index == ((historyData!['timeline'] as List).length - 1);
-
-              final colors = [
-                [Colors.blue.shade300, Colors.cyan.shade300],
-                [Colors.purple.shade300, Colors.pink.shade300],
-                [Colors.green.shade300, Colors.teal.shade300],
-                [Colors.orange.shade300, Colors.red.shade300],
-                [Colors.amber.shade300, Colors.orange.shade400],
-              ];
-
-              final gradient = colors[index % colors.length];
-
-              return _buildTimelineItem(
-                index: index,
-                period: period['period'] ?? '',
-                description: period['description'] ?? '',
-                gradient: gradient,
-                isLast: isLast,
-              );
-            }).toList(),
           ],
-        ),
+
+          SizedBox(height: 30),
+        ],
       ),
     );
   }
 
-  Widget _buildTimelineItem({
-    required int index,
-    required String period,
-    required String description,
-    required List<Color> gradient,
-    required bool isLast,
-  }) {
+  Widget _buildTimelineItem(Map<String, dynamic> period, int index, bool isLast, ThemeProvider themeProvider) {
+    final periodName = period['period'] ?? '';
+    final eraName = period['era_name'] ?? '';
+    final description = period['description'] ?? '';
+    final keyEvents = (period['key_events'] as List?) ?? [];
+    final rulers = (period['rulers'] as List?) ?? [];
+    final monuments = (period['monuments_built'] as List?) ?? [];
+    final culturalImpact = period['cultural_impact'] ?? '';
+    final legacy = period['legacy'] ?? '';
+    final imageUrl = periodImages[periodName];
+
+    final colors = [
+      [Colors.blue[400]!, Colors.cyan[400]!],
+      [Colors.purple[400]!, Colors.pink[400]!],
+      [Colors.green[400]!, Colors.teal[400]!],
+      [Colors.orange[400]!, Colors.red[400]!],
+      [Colors.amber[400]!, Colors.orange[600]!],
+      [Colors.indigo[400]!, Colors.blue[400]!],
+    ];
+    final gradient = colors[index % colors.length];
+
     return Padding(
-      padding: const EdgeInsets.only(left: 16, bottom: 20),
+      padding: const EdgeInsets.only(left: 32, right: 16, bottom: 24),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Timeline indicator
+          // Timeline Line
           Column(
             children: [
               Container(
-                width: 40,
-                height: 40,
+                width: 50,
+                height: 50,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(colors: gradient),
                   shape: BoxShape.circle,
@@ -219,16 +478,17 @@ class _HistoryPageSimpleState extends State<HistoryPageSimple> {
                     BoxShadow(
                       color: gradient[0].withOpacity(0.4),
                       blurRadius: 8,
+                      offset: Offset(0, 4),
                     ),
                   ],
                 ),
                 child: Center(
                   child: Text(
                     '${index + 1}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
-                      fontSize: 16,
+                      fontSize: 20,
                     ),
                   ),
                 ),
@@ -236,11 +496,11 @@ class _HistoryPageSimpleState extends State<HistoryPageSimple> {
               if (!isLast)
                 Container(
                   width: 3,
-                  height: 80,
+                  height: 100,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        gradient[0].withOpacity(0.5),
+                        gradient[0].withOpacity(0.6),
                         gradient[1].withOpacity(0.3),
                       ],
                       begin: Alignment.topCenter,
@@ -251,58 +511,253 @@ class _HistoryPageSimpleState extends State<HistoryPageSimple> {
             ],
           ),
 
-          const SizedBox(width: 16),
+          SizedBox(width: 16),
 
-          // Content
+          // Content Card
           Expanded(
-            child: Card(
-              elevation: 3,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: BorderSide(
-                  color: gradient[0].withOpacity(0.3),
-                  width: 2,
-                ),
+            child: Container(
+              decoration: BoxDecoration(
+                color: themeProvider.isDarkMode ? Colors.grey[800] : Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: gradient[0].withOpacity(0.3), width: 2),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 10,
+                    offset: Offset(0, 4),
+                  ),
+                ],
               ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(colors: gradient),
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(18),
+                        topRight: Radius.circular(18),
                       ),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(colors: gradient),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        period,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          periodName,
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
                         ),
-                      ),
+                        if (eraName.isNotEmpty) ...[
+                          SizedBox(height: 4),
+                          Text(
+                            eraName,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.white.withOpacity(0.9),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
-                    const SizedBox(height: 12),
-                    Text(
-                      description,
-                      style: TextStyle(
-                        fontSize: 14,
-                        height: 1.5,
-                        color: Colors.grey[700],
-                      ),
+                  ),
+
+                  // Image if available
+                  if (imageUrl != null)
+                    Image.network(
+                      imageUrl,
+                      height: 180,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => SizedBox.shrink(),
                     ),
-                  ],
-                ),
+
+                  // Content
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          description,
+                          style: TextStyle(fontSize: 14, height: 1.6),
+                        ),
+
+                        // Key Events
+                        if (keyEvents.isNotEmpty) ...[
+                          SizedBox(height: 16),
+                          _buildSubSection(
+                            'Key Events',
+                            Icons.event,
+                            gradient[0],
+                            keyEvents.map((event) {
+                              if (event is Map) {
+                                return '${event['date']}: ${event['event']} - ${event['significance']}';
+                              }
+                              return event.toString();
+                            }).toList(),
+                          ),
+                        ],
+
+                        // Rulers
+                        if (rulers.isNotEmpty) ...[
+                          SizedBox(height: 16),
+                          _buildSubSection(
+                            'Notable Rulers',
+                            Icons.person,
+                            gradient[1],
+                            rulers.map((ruler) {
+                              if (ruler is Map) {
+                                return '${ruler['name']} (${ruler['reign']}): ${ruler['contribution']}';
+                              }
+                              return ruler.toString();
+                            }).toList(),
+                          ),
+                        ],
+
+                        // Monuments
+                        if (monuments.isNotEmpty) ...[
+                          SizedBox(height: 16),
+                          _buildSubSection(
+                            'Monuments Built',
+                            Icons.account_balance,
+                            Colors.brown,
+                            monuments.map((monument) {
+                              if (monument is Map) {
+                                final stillExists = monument['still_exists'] == true ? '✓' : '✗';
+                                return '$stillExists ${monument['name']} (${monument['year']}) - by ${monument['builder']}';
+                              }
+                              return monument.toString();
+                            }).toList(),
+                          ),
+                        ],
+
+                        // Cultural Impact
+                        if (culturalImpact.isNotEmpty) ...[
+                          SizedBox(height: 16),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.purple.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Icon(Icons.palette, color: Colors.purple, size: 18),
+                                SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    culturalImpact,
+                                    style: TextStyle(fontSize: 13, fontStyle: FontStyle.italic),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+
+                        // Legacy
+                        if (legacy.isNotEmpty) ...[
+                          SizedBox(height: 12),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: gradient.map((c) => c.withOpacity(0.1)).toList(),
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: gradient[0].withOpacity(0.3)),
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Icon(Icons.star, color: gradient[0], size: 18),
+                                SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Legacy',
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.bold,
+                                          color: gradient[0],
+                                        ),
+                                      ),
+                                      SizedBox(height: 4),
+                                      Text(
+                                        legacy,
+                                        style: TextStyle(fontSize: 13),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildSubSection(String title, IconData icon, Color color, List<String> items) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, size: 16, color: color),
+            SizedBox(width: 8),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 8),
+        ...items.map((item) => Padding(
+          padding: const EdgeInsets.only(bottom: 6, left: 8),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                margin: const EdgeInsets.only(top: 6),
+                width: 4,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: color,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  item,
+                  style: TextStyle(fontSize: 13, height: 1.4),
+                ),
+              ),
+            ],
+          ),
+        )).toList(),
+      ],
     );
   }
 }

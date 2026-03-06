@@ -5,23 +5,23 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../theme_provider.dart';
 import '../services/gemini_service.dart';
-import 'category_pages/culture_info_page.dart';
 import 'category_pages/food_page.dart';
-import 'category_pages/history_page.dart';
-import 'category_pages/tourist_places_page.dart';
 import 'category_pages/traditional_dress_page.dart';
+import 'category_pages/culture_info_page.dart';
+import 'category_pages/tourist_places_page.dart';
+import 'category_pages/history_page.dart';
 
-class CityDetailPageSimple extends StatefulWidget {
+class CityDetailPage extends StatefulWidget {
   final Map<String, dynamic> city;
 
-  const CityDetailPageSimple({super.key, required this.city});
+  const CityDetailPage({super.key, required this.city});
 
   @override
-  State<CityDetailPageSimple> createState() => _CityDetailPageSimpleState();
+  State<CityDetailPage> createState() => _CityDetailPageState();
 }
 
-class _CityDetailPageSimpleState extends State<CityDetailPageSimple> {
-  String? cityTagline;
+class _CityDetailPageState extends State<CityDetailPage> {
+  String cityTagline = '';
   bool isLoadingTagline = true;
 
   @override
@@ -31,26 +31,94 @@ class _CityDetailPageSimpleState extends State<CityDetailPageSimple> {
   }
 
   Future<void> _loadTagline() async {
-    final tagline = await GeminiService.getCityTagline(widget.city['name']);
-    setState(() {
-      cityTagline = tagline;
-      isLoadingTagline = false;
-    });
+    try {
+      final tagline = await GeminiService.getCityTagline(widget.city['name']);
+      if (mounted) {
+        setState(() {
+          cityTagline = tagline;
+          isLoadingTagline = false;
+        });
+      }
+    } catch (e) {
+      print('Tagline error: $e');
+      if (mounted) {
+        setState(() {
+          cityTagline = 'Historic City';
+          isLoadingTagline = false;
+        });
+      }
+    }
   }
 
   Future<void> _openInGoogleMaps() async {
-    final lat = widget.city['latitude'];
-    final lng = widget.city['longitude'];
-    final cityName = widget.city['name'];
+    try {
+      final lat = widget.city['latitude'];
+      final lng = widget.city['longitude'];
+      final cityName = Uri.encodeComponent(widget.city['name']);
 
-    final url = Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lng');
+      // Google Maps web URL (works on all platforms)
+      final webUrl = Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lng');
+      
+      // Google Maps app URL for Android
+      final androidUrl = Uri.parse('google.navigation:q=$lat,$lng');
+      
+      // Google Maps app URL for iOS
+      final iosUrl = Uri.parse('comgooglemaps://?q=$lat,$lng&center=$lat,$lng');
+      
+      // geo: URL scheme
+      final geoUrl = Uri.parse('geo:$lat,$lng?q=$lat,$lng($cityName)');
 
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
-    } else {
+      print('🗺️ Trying to open maps for: $lat, $lng');
+
+      // Try different URL schemes
+      bool launched = false;
+      
+      // Try geo: first (Android)
+      if (!launched && await canLaunchUrl(geoUrl)) {
+        print('🗺️ Launching geo URL...');
+        launched = await launchUrl(geoUrl, mode: LaunchMode.externalApplication);
+      }
+      
+      // Try Google Maps app URL (Android)
+      if (!launched && await canLaunchUrl(androidUrl)) {
+        print('🗺️ Launching Android Google Maps URL...');
+        launched = await launchUrl(androidUrl, mode: LaunchMode.externalApplication);
+      }
+      
+      // Try Google Maps app URL (iOS)
+      if (!launched && await canLaunchUrl(iosUrl)) {
+        print('🗺️ Launching iOS Google Maps URL...');
+        launched = await launchUrl(iosUrl, mode: LaunchMode.externalApplication);
+      }
+      
+      // Fallback: Web URL (works everywhere)
+      if (!launched) {
+        print('🗺️ Launching web URL...');
+        launched = await launchUrl(
+          webUrl, 
+          mode: LaunchMode.externalApplication,
+        );
+      }
+      
+      // If still not launched, try with platformDefault
+      if (!launched) {
+        print('🗺️ Trying platformDefault mode...');
+        launched = await launchUrl(
+          webUrl,
+          mode: LaunchMode.platformDefault,
+        );
+      }
+
+      if (!launched && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not open maps. Please check if you have a browser installed.')),
+        );
+      }
+    } catch (e) {
+      print('❌ Maps error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not open Google Maps')),
+          SnackBar(content: Text('Error opening maps: $e')),
         );
       }
     }
@@ -67,27 +135,34 @@ class _CityDetailPageSimpleState extends State<CityDetailPageSimple> {
         backgroundColor: Colors.transparent,
         leading: IconButton(
           icon: Container(
-            padding: const EdgeInsets.all(8),
+            padding: EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.3),
+              color: Colors.black.withOpacity(0.5),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(Icons.arrow_back, color: Colors.white),
+            child: Icon(Icons.arrow_back, color: Colors.white),
           ),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          city['name'],
-          style: const TextStyle(
+          widget.city['name'],
+          style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
             fontSize: 24,
+            shadows: [
+              Shadow(
+                color: Colors.black.withOpacity(0.5),
+                blurRadius: 10,
+              ),
+            ],
           ),
         ),
         centerTitle: true,
       ),
       body: Stack(
         children: [
+          // Background
           Positioned.fill(
             child: Container(
               decoration: BoxDecoration(
@@ -106,13 +181,13 @@ class _CityDetailPageSimpleState extends State<CityDetailPageSimple> {
             child: SingleChildScrollView(
               child: Column(
                 children: [
-                  const SizedBox(height: 10),
+                  SizedBox(height: 10),
 
-                  // Map with tap to open Google Maps
+                  // Map - Clickable
                   GestureDetector(
                     onTap: _openInGoogleMaps,
                     child: Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 16),
+                      margin: EdgeInsets.symmetric(horizontal: 16),
                       height: 250,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(25),
@@ -120,7 +195,7 @@ class _CityDetailPageSimpleState extends State<CityDetailPageSimple> {
                           BoxShadow(
                             color: Colors.black.withOpacity(0.2),
                             blurRadius: 20,
-                            offset: const Offset(0, 10),
+                            offset: Offset(0, 10),
                           ),
                         ],
                       ),
@@ -130,23 +205,30 @@ class _CityDetailPageSimpleState extends State<CityDetailPageSimple> {
                             borderRadius: BorderRadius.circular(25),
                             child: FlutterMap(
                               options: MapOptions(
-                                initialCenter: LatLng(widget.city['latitude'], widget.city['longitude']),
+                                initialCenter: LatLng(
+                                  widget.city['latitude'],
+                                  widget.city['longitude'],
+                                ),
                                 initialZoom: 13.0,
-                                interactiveFlags: InteractiveFlag.none, // Disable map interaction
+                                interactionOptions: const InteractionOptions(
+                                  flags: InteractiveFlag.none,
+                                ),
                               ),
                               children: [
                                 TileLayer(
                                   urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                                  subdomains: const ['a', 'b', 'c'],
-                                  userAgentPackageName: 'com.example.culture_connect',
+                                  subdomains: ['a', 'b', 'c'],
                                 ),
                                 MarkerLayer(
                                   markers: [
                                     Marker(
-                                      point: LatLng(widget.city['latitude'], widget.city['longitude']),
+                                      point: LatLng(
+                                        widget.city['latitude'],
+                                        widget.city['longitude'],
+                                      ),
                                       width: 80,
                                       height: 80,
-                                      child:  const Icon(
+                                      child: Icon(
                                         Icons.location_on,
                                         color: Colors.red,
                                         size: 50,
@@ -157,12 +239,12 @@ class _CityDetailPageSimpleState extends State<CityDetailPageSimple> {
                               ],
                             ),
                           ),
-                          // Overlay to show it's clickable
+                          // Tap hint
                           Positioned(
                             bottom: 16,
                             right: 16,
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                               decoration: BoxDecoration(
                                 color: Colors.blue,
                                 borderRadius: BorderRadius.circular(20),
@@ -175,7 +257,7 @@ class _CityDetailPageSimpleState extends State<CityDetailPageSimple> {
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
-                                children: const [
+                                children: [
                                   Icon(Icons.map, color: Colors.white, size: 16),
                                   SizedBox(width: 6),
                                   Text(
@@ -195,13 +277,13 @@ class _CityDetailPageSimpleState extends State<CityDetailPageSimple> {
                     ),
                   ),
 
-                  const SizedBox(height: 25),
+                  SizedBox(height: 25),
 
-                  // City Info with Tagline
+                  // City Info Card with Tagline
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: EdgeInsets.symmetric(horizontal: 16),
                     child: Container(
-                      padding: const EdgeInsets.all(20),
+                      padding: EdgeInsets.all(20),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: themeProvider.isDarkMode
@@ -213,6 +295,13 @@ class _CityDetailPageSimpleState extends State<CityDetailPageSimple> {
                           color: Colors.white.withOpacity(0.3),
                           width: 1.5,
                         ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 10,
+                            offset: Offset(0, 5),
+                          ),
+                        ],
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -225,11 +314,11 @@ class _CityDetailPageSimpleState extends State<CityDetailPageSimple> {
                               color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
                             ),
                           ),
-                          const SizedBox(height: 8),
+                          SizedBox(height: 8),
                           Row(
                             children: [
                               Icon(Icons.place, color: Colors.orange, size: 18),
-                              const SizedBox(width: 5),
+                              SizedBox(width: 5),
                               Text(
                                 widget.city['state'],
                                 style: TextStyle(
@@ -239,16 +328,17 @@ class _CityDetailPageSimpleState extends State<CityDetailPageSimple> {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 12),
+                          SizedBox(height: 12),
+                          // Tagline
                           if (isLoadingTagline)
-                            const SizedBox(
+                            SizedBox(
                               height: 20,
                               width: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.orange),
                             )
-                          else if (cityTagline != null)
+                          else if (cityTagline.isNotEmpty)
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                               decoration: BoxDecoration(
                                 gradient: LinearGradient(
                                   colors: [Colors.orange, Colors.deepOrange],
@@ -256,8 +346,8 @@ class _CityDetailPageSimpleState extends State<CityDetailPageSimple> {
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: Text(
-                                cityTagline!,
-                                style: const TextStyle(
+                                cityTagline,
+                                style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                   color: Colors.white,
@@ -270,28 +360,32 @@ class _CityDetailPageSimpleState extends State<CityDetailPageSimple> {
                     ),
                   ),
 
-                  const SizedBox(height: 30),
+                  SizedBox(height: 30),
 
+                  // Section Title
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Text(
-                      "🎭 Explore Culture",
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                    padding: EdgeInsets.symmetric(horizontal: 16),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        "🎭 Explore Culture",
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                        ),
                       ),
                     ),
                   ),
 
-                  const SizedBox(height: 20),
+                  SizedBox(height: 20),
 
-                  // Category Buttons
+                  // Category Grid
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: EdgeInsets.symmetric(horizontal: 16),
                     child: GridView.count(
                       shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
+                      physics: NeverScrollableScrollPhysics(),
                       crossAxisCount: 2,
                       mainAxisSpacing: 15,
                       crossAxisSpacing: 15,
@@ -305,7 +399,7 @@ class _CityDetailPageSimpleState extends State<CityDetailPageSimple> {
                           onTap: () => Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => FoodPageSimple(city: city),
+                              builder: (context) => FoodPage(city: widget.city),
                             ),
                           ),
                         ),
@@ -317,7 +411,7 @@ class _CityDetailPageSimpleState extends State<CityDetailPageSimple> {
                           onTap: () => Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => TraditionalDressPageSimple(city: city),
+                              builder: (context) => TraditionalDressPageEnhanced(city: widget.city),
                             ),
                           ),
                         ),
@@ -329,7 +423,7 @@ class _CityDetailPageSimpleState extends State<CityDetailPageSimple> {
                           onTap: () => Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => CultureInfoPageSimple(city: city),
+                              builder: (context) => CultureInfoPageEnhanced(city: widget.city),
                             ),
                           ),
                         ),
@@ -341,7 +435,7 @@ class _CityDetailPageSimpleState extends State<CityDetailPageSimple> {
                           onTap: () => Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => TouristPlacesPageSimple(city: city),
+                              builder: (context) => TouristPlacesPage(city: widget.city),
                             ),
                           ),
                         ),
@@ -353,7 +447,7 @@ class _CityDetailPageSimpleState extends State<CityDetailPageSimple> {
                           onTap: () => Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => HistoryPageSimple(city: city),
+                              builder: (context) => HistoryPageEnhanced(city: widget.city),
                             ),
                           ),
                         ),
@@ -361,7 +455,7 @@ class _CityDetailPageSimpleState extends State<CityDetailPageSimple> {
                     ),
                   ),
 
-                  const SizedBox(height: 30),
+                  SizedBox(height: 30),
                 ],
               ),
             ),
@@ -397,7 +491,7 @@ class _CityDetailPageSimpleState extends State<CityDetailPageSimple> {
             BoxShadow(
               color: gradient[0].withOpacity(0.3),
               blurRadius: 15,
-              offset: const Offset(0, 8),
+              offset: Offset(0, 8),
             ),
           ],
         ),
@@ -405,18 +499,18 @@ class _CityDetailPageSimpleState extends State<CityDetailPageSimple> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: const EdgeInsets.all(15),
+              padding: EdgeInsets.all(15),
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(15),
               ),
               child: Icon(icon, size: 40, color: Colors.white),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             Text(
               title,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,

@@ -2,37 +2,40 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:provider/provider.dart';
+import '../auth_service.dart';
 import '../theme_provider.dart';
 import '../data/indian_cities.dart';
 import 'city_detail_page_simple.dart';
 import 'journal_page.dart';
+import '../login/login.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  HomePageState createState() => HomePageState();
 }
 
-class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin {
+class HomePageState extends State<HomePage>
+    with SingleTickerProviderStateMixin {
   List<Map<String, dynamic>> cities = [];
   Map<String, dynamic>? selectedCity;
 
   final List<Map<String, String>> festivalCards = [
     {
-      "name": "Diwali",
-      "place": "Ayodhya",
-      "image": "assets/images/diwali_ayodhya.png",
+      'name': 'Diwali',
+      'place': 'Ayodhya',
+      'image': 'assets/images/diwali_ayodhya.png',
     },
     {
-      "name": "Holi",
-      "place": "Mathura",
-      "image": "assets/images/goverdhan_mathura.png",
+      'name': 'Holi',
+      'place': 'Mathura',
+      'image': 'assets/images/goverdhan_mathura.png',
     },
     {
-      "name": "Pushkar Fair",
-      "place": "Pushkar",
-      "image": "assets/images/chattpuja_bihar.png",
+      'name': 'Pushkar Fair',
+      'place': 'Pushkar',
+      'image': 'assets/images/chattpuja_bihar.png',
     },
   ];
 
@@ -46,10 +49,9 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       duration: const Duration(milliseconds: 1200),
       vsync: this,
     );
-    _fadeAnimation = CurvedAnimation(parent: _animController!, curve: Curves.easeIn);
+    _fadeAnimation =
+        CurvedAnimation(parent: _animController!, curve: Curves.easeIn);
     _animController!.forward();
-
-    // Load cities from simple list (no API call needed!)
     cities = IndianCities.getAllCities();
   }
 
@@ -63,12 +65,10 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => CityDetailPageSimple(city: city),
+        builder: (context) => CityDetailPage(city: city),
       ),
     ).then((_) {
-      setState(() {
-        selectedCity = null;
-      });
+      setState(() => selectedCity = null);
     });
   }
 
@@ -77,6 +77,46 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       context,
       MaterialPageRoute(builder: (context) => const JournalPage()),
     );
+  }
+
+  Future<void> _logout() async {
+    // Show confirmation dialog
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.logout, color: Colors.orange),
+            SizedBox(width: 10),
+            Text('Log Out'),
+          ],
+        ),
+        content: const Text('Are you sure you want to log out?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Log Out'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await AuthService().logout();
+      // AuthGate in main.dart will automatically redirect to LoginPage
+      // because Firebase auth stream will emit null
+    }
   }
 
   @override
@@ -91,14 +131,14 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
         title: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.celebration, color: Colors.orange, size: 28),
+            const Icon(Icons.celebration, color: Colors.orange, size: 28),
             const SizedBox(width: 8),
             ShaderMask(
-              shaderCallback: (bounds) => LinearGradient(
+              shaderCallback: (bounds) => const LinearGradient(
                 colors: [Colors.orange, Colors.deepOrange, Colors.pink],
               ).createShader(bounds),
               child: const Text(
-                "Culture Connect",
+                'Culture Connect',
                 style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
@@ -110,18 +150,23 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
         ),
         centerTitle: true,
         actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: IconButton(
-              icon: Icon(
-                themeProvider.isDarkMode ? Icons.wb_sunny : Icons.nightlight_round,
-                color: themeProvider.isDarkMode ? Colors.yellow : Colors.orange,
-                size: 28,
-              ),
-              onPressed: () {
-                themeProvider.toggleTheme();
-              },
+          // Theme toggle
+          IconButton(
+            icon: Icon(
+              themeProvider.isDarkMode
+                  ? Icons.wb_sunny
+                  : Icons.nightlight_round,
+              color:
+              themeProvider.isDarkMode ? Colors.yellow : Colors.orange,
+              size: 26,
             ),
+            onPressed: () => themeProvider.toggleTheme(),
+          ),
+          // Logout button
+          IconButton(
+            icon: const Icon(Icons.logout, color: Colors.orange, size: 24),
+            tooltip: 'Log Out',
+            onPressed: _logout,
           ),
         ],
       ),
@@ -134,7 +179,9 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
               fit: BoxFit.cover,
               alignment: Alignment.center,
               errorBuilder: (context, error, stackTrace) => Container(
-                color: themeProvider.isDarkMode ? Colors.black : Colors.white,
+                color: themeProvider.isDarkMode
+                    ? Colors.black
+                    : Colors.white,
               ),
             ),
           ),
@@ -175,14 +222,22 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
 
                     // Welcome Section
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      padding:
+                      const EdgeInsets.symmetric(horizontal: 24),
                       child: Container(
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: themeProvider.isDarkMode
-                                ? [Colors.deepPurple.withOpacity(0.3), Colors.purple.withOpacity(0.2)]
-                                : [Colors.white.withOpacity(0.4), Colors.orange.withOpacity(0.2)],
+                                ? [
+                              Colors.deepPurple
+                                  .withOpacity(0.3),
+                              Colors.purple.withOpacity(0.2)
+                            ]
+                                : [
+                              Colors.white.withOpacity(0.4),
+                              Colors.orange.withOpacity(0.2)
+                            ],
                           ),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
@@ -198,22 +253,27 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                           ],
                         ),
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                          crossAxisAlignment:
+                          CrossAxisAlignment.start,
                           children: [
                             Text(
                               "Discover India's Rich Heritage",
                               style: TextStyle(
                                 fontSize: 22,
                                 fontWeight: FontWeight.bold,
-                                color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                                color: themeProvider.isDarkMode
+                                    ? Colors.white
+                                    : Colors.black87,
                               ),
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              "Powered by AI - Real-time cultural insights",
+                              'Powered by AI - Real-time cultural insights',
                               style: TextStyle(
                                 fontSize: 14,
-                                color: themeProvider.isDarkMode ? Colors.white70 : Colors.black54,
+                                color: themeProvider.isDarkMode
+                                    ? Colors.white70
+                                    : Colors.black54,
                               ),
                             ),
                           ],
@@ -225,15 +285,18 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
 
                     // Festival Carousel
                     Padding(
-                      padding: const EdgeInsets.only(left: 24),
+                      padding:
+                      const EdgeInsets.only(left: 24),
                       child: Align(
                         alignment: Alignment.centerLeft,
                         child: Text(
-                          "✨ Featured Festivals",
+                          '✨ Featured Festivals',
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
-                            color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                            color: themeProvider.isDarkMode
+                                ? Colors.white
+                                : Colors.black87,
                           ),
                         ),
                       ),
@@ -246,33 +309,42 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                         autoPlay: true,
                         enlargeCenterPage: true,
                         viewportFraction: 0.85,
-                        autoPlayInterval: const Duration(seconds: 4),
+                        autoPlayInterval:
+                        const Duration(seconds: 4),
                       ),
                       items: festivalCards.map((festival) {
                         return Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 5),
+                          margin: const EdgeInsets.symmetric(
+                              horizontal: 5),
                           decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(25),
+                            borderRadius:
+                            BorderRadius.circular(25),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.3),
+                                color: Colors.black
+                                    .withOpacity(0.3),
                                 blurRadius: 15,
                                 offset: const Offset(0, 8),
                               ),
                             ],
                           ),
                           child: ClipRRect(
-                            borderRadius: BorderRadius.circular(25),
+                            borderRadius:
+                            BorderRadius.circular(25),
                             child: Stack(
                               children: [
                                 Positioned.fill(
                                   child: Image.asset(
                                     festival['image']!,
                                     fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) =>
+                                    errorBuilder: (context, error,
+                                        stackTrace) =>
                                         Container(
                                           color: Colors.grey[800],
-                                          child: const Icon(Icons.festival, size: 80, color: Colors.white54),
+                                          child: const Icon(
+                                              Icons.festival,
+                                              size: 80,
+                                              color: Colors.white54),
                                         ),
                                   ),
                                 ),
@@ -284,7 +356,8 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                                         end: Alignment.bottomCenter,
                                         colors: [
                                           Colors.transparent,
-                                          Colors.black.withOpacity(0.7),
+                                          Colors.black
+                                              .withOpacity(0.7),
                                         ],
                                       ),
                                     ),
@@ -295,20 +368,28 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                                   left: 20,
                                   right: 20,
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                    CrossAxisAlignment.start,
                                     children: [
                                       Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                        padding:
+                                        const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                            vertical: 6),
                                         decoration: BoxDecoration(
-                                          color: Colors.orange.withOpacity(0.9),
-                                          borderRadius: BorderRadius.circular(20),
+                                          color: Colors.orange
+                                              .withOpacity(0.9),
+                                          borderRadius:
+                                          BorderRadius.circular(
+                                              20),
                                         ),
                                         child: Text(
                                           festival['place']!,
                                           style: const TextStyle(
                                             color: Colors.white,
                                             fontSize: 12,
-                                            fontWeight: FontWeight.w600,
+                                            fontWeight:
+                                            FontWeight.w600,
                                           ),
                                         ),
                                       ),
@@ -335,26 +416,35 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
 
                     // City Selection
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 24),
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        crossAxisAlignment:
+                        CrossAxisAlignment.start,
                         children: [
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            mainAxisAlignment:
+                            MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                "🏛️ Explore by City",
+                                '🏛️ Explore by City',
                                 style: TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.bold,
-                                  color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                                  color: themeProvider.isDarkMode
+                                      ? Colors.white
+                                      : Colors.black87,
                                 ),
                               ),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                padding:
+                                const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4),
                                 decoration: BoxDecoration(
                                   color: Colors.orange,
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius:
+                                  BorderRadius.circular(12),
                                 ),
                                 child: Text(
                                   '${cities.length} cities',
@@ -369,65 +459,84 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                           ),
                           const SizedBox(height: 15),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 20, vertical: 5),
                             decoration: BoxDecoration(
                               color: themeProvider.isDarkMode
-                                  ? Colors.deepPurple.withOpacity(0.6)
+                                  ? Colors.deepPurple
+                                  .withOpacity(0.6)
                                   : Colors.white.withOpacity(0.8),
-                              borderRadius: BorderRadius.circular(20),
+                              borderRadius:
+                              BorderRadius.circular(20),
                               border: Border.all(
-                                color: Colors.white.withOpacity(0.4),
+                                color:
+                                Colors.white.withOpacity(0.4),
                                 width: 1.5,
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.1),
+                                  color:
+                                  Colors.black.withOpacity(0.1),
                                   blurRadius: 15,
                                   offset: const Offset(0, 5),
                                 ),
                               ],
                             ),
                             child: DropdownButtonHideUnderline(
-                              child: DropdownButton<Map<String, dynamic>>(
+                              child: DropdownButton<
+                                  Map<String, dynamic>>(
                                 value: selectedCity,
                                 hint: Text(
-                                  "Select Your City",
+                                  'Select Your City',
                                   style: TextStyle(
-                                    color: themeProvider.isDarkMode ? Colors.white70 : Colors.black54,
+                                    color: themeProvider.isDarkMode
+                                        ? Colors.white70
+                                        : Colors.black54,
                                     fontSize: 16,
                                   ),
                                 ),
-                                dropdownColor: themeProvider.isDarkMode
+                                dropdownColor:
+                                themeProvider.isDarkMode
                                     ? Colors.deepPurple[900]
                                     : Colors.white,
                                 icon: Icon(
                                   Icons.keyboard_arrow_down,
-                                  color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                                  color: themeProvider.isDarkMode
+                                      ? Colors.white
+                                      : Colors.black87,
                                 ),
                                 isExpanded: true,
                                 style: TextStyle(
-                                  color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
+                                  color: themeProvider.isDarkMode
+                                      ? Colors.white
+                                      : Colors.black87,
                                   fontSize: 16,
                                   fontWeight: FontWeight.w500,
                                 ),
                                 items: cities.map((city) {
-                                  return DropdownMenuItem<Map<String, dynamic>>(
+                                  return DropdownMenuItem<
+                                      Map<String, dynamic>>(
                                     value: city,
                                     child: Row(
                                       children: [
-                                        const Icon(Icons.location_city, size: 20, color: Colors.orange),
+                                        const Icon(
+                                            Icons.location_city,
+                                            size: 20,
+                                            color: Colors.orange),
                                         const SizedBox(width: 10),
                                         Expanded(
                                           child: Text(
                                             city['name'],
-                                            overflow: TextOverflow.ellipsis,
+                                            overflow:
+                                            TextOverflow.ellipsis,
                                           ),
                                         ),
                                       ],
                                     ),
                                   );
                                 }).toList(),
-                                onChanged: (Map<String, dynamic>? value) {
+                                onChanged:
+                                    (Map<String, dynamic>? value) {
                                   if (value != null) {
                                     _navigateToCityDetail(value);
                                   }
@@ -443,7 +552,8 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
 
                     // Journal Card
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 24),
                       child: InkWell(
                         onTap: _navigateToJournal,
                         borderRadius: BorderRadius.circular(25),
@@ -452,8 +562,14 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               colors: themeProvider.isDarkMode
-                                  ? [Colors.deepPurple, Colors.purple.shade700]
-                                  : [Colors.pinkAccent, Colors.orangeAccent],
+                                  ? [
+                                Colors.deepPurple,
+                                Colors.purple.shade700
+                              ]
+                                  : [
+                                Colors.pinkAccent,
+                                Colors.orangeAccent
+                              ],
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                             ),
@@ -464,7 +580,9 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: (themeProvider.isDarkMode ? Colors.purple : Colors.orange)
+                                color: (themeProvider.isDarkMode
+                                    ? Colors.purple
+                                    : Colors.orange)
                                     .withOpacity(0.4),
                                 blurRadius: 20,
                                 offset: const Offset(0, 10),
@@ -476,18 +594,23 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                               Container(
                                 padding: const EdgeInsets.all(15),
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(15),
+                                  color: Colors.white
+                                      .withOpacity(0.2),
+                                  borderRadius:
+                                  BorderRadius.circular(15),
                                 ),
-                                child: const Icon(Icons.auto_stories, size: 40, color: Colors.white),
+                                child: const Icon(Icons.auto_stories,
+                                    size: 40,
+                                    color: Colors.white),
                               ),
                               const SizedBox(width: 20),
-                              Expanded(
+                              const Expanded(
                                 child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: const [
+                                  crossAxisAlignment:
+                                  CrossAxisAlignment.start,
+                                  children: [
                                     Text(
-                                      "My Culture Journal",
+                                      'My Culture Journal',
                                       style: TextStyle(
                                         fontSize: 20,
                                         fontWeight: FontWeight.bold,
@@ -496,13 +619,16 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                                     ),
                                     SizedBox(height: 5),
                                     Text(
-                                      "Save your trip memories",
-                                      style: TextStyle(color: Colors.white70, fontSize: 14),
+                                      'Save your trip memories',
+                                      style: TextStyle(
+                                          color: Colors.white70,
+                                          fontSize: 14),
                                     ),
                                   ],
                                 ),
                               ),
-                              const Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 20),
+                              const Icon(Icons.arrow_forward_ios,
+                                  color: Colors.white70, size: 20),
                             ],
                           ),
                         ),
