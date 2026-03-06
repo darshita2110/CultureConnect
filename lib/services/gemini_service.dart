@@ -1,9 +1,10 @@
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'dart:convert';
 import 'groq_service.dart';
 
 class GeminiService {
-  static const String _apiKey = 'AIzaSyDw4yrvHlp-pgdGjS19RR5mefh5oGt_2ck'; // ADD YOUR KEY
+  static String get _apiKey => dotenv.env['GEMINI_API_KEY'] ?? '';
   static late GenerativeModel _model;
 
   static void init() {
@@ -23,7 +24,7 @@ class GeminiService {
     'Chennai': 'Gateway to South India',
     'Kolkata': 'City of Joy',
     'Hyderabad': 'City of Pearls',
-    
+
     // Tourist & Heritage Cities
     'Agra': 'City of Taj',
     'Jaipur': 'Pink City',
@@ -38,7 +39,7 @@ class GeminiService {
     'Rishikesh': 'Yoga Capital of the World',
     'Mysore': 'City of Palaces',
     'Mysuru': 'City of Palaces',
-    
+
     // Western India
     'Pune': 'Deccan Queen',
     'Ahmedabad': 'Manchester of India',
@@ -46,7 +47,7 @@ class GeminiService {
     'Vadodara': 'Cultural Capital of Gujarat',
     'Goa': 'Pearl of the Orient',
     'Nashik': 'Wine Capital of India',
-    
+
     // Southern India
     'Kochi': 'Queen of the Arabian Sea',
     'Thiruvananthapuram': 'Evergreen City of India',
@@ -57,7 +58,7 @@ class GeminiService {
     'Puducherry': 'French Riviera of the East',
     'Ooty': 'Queen of Hill Stations',
     'Hampi': 'City of Ruins',
-    
+
     // Northern India
     'Lucknow': 'City of Nawabs',
     'Allahabad': 'Sangam City',
@@ -71,7 +72,7 @@ class GeminiService {
     'Mathura': 'Birthplace of Lord Krishna',
     'Vrindavan': 'Land of Krishna',
     'Ayodhya': 'Birthplace of Lord Rama',
-    
+
     // Eastern India
     'Darjeeling': 'Queen of the Himalayas',
     'Gangtok': 'Land of Monasteries',
@@ -80,7 +81,7 @@ class GeminiService {
     'Guwahati': 'Gateway to Northeast',
     'Shillong': 'Scotland of the East',
     'Patna': 'City of Knowledge',
-    
+
     // Central India
     'Bhopal': 'City of Lakes',
     'Indore': 'Food Capital of India',
@@ -88,7 +89,7 @@ class GeminiService {
     'Khajuraho': 'City of Temples',
     'Raipur': 'Rice Bowl of India',
     'Nagpur': 'Orange City',
-    
+
     // Other Notable Cities
     'Aurangabad': 'City of Gates',
     'Ajmer': 'Heart of Rajasthan',
@@ -115,43 +116,43 @@ class GeminiService {
       print('✅ [STATIC] $cityName: $staticTagline');
       return staticTagline;
     }
-    
+
     // 2. Check in-memory cache (previously fetched)
     final cachedTagline = _taglineCache[cityName];
     if (cachedTagline != null) {
       print('✅ [CACHE] $cityName: $cachedTagline');
       return cachedTagline;
     }
-    
+
     // 3. Try Gemini API
     String? tagline = await _tryGeminiApi(cityName);
     if (tagline != null) {
       _taglineCache[cityName] = tagline; // Cache for future
       return tagline;
     }
-    
+
     // 4. Try Groq API as backup (uses GroqService)
     tagline = await GroqService.getCityTagline(cityName);
     if (tagline != null) {
       _taglineCache[cityName] = tagline; // Cache for future
       return tagline;
     }
-    
+
     // 5. Return default
     print('⚠️ [DEFAULT] $cityName: Historic City');
     return 'Historic City';
   }
-  
+
   /// Try Gemini API for tagline
   static Future<String?> _tryGeminiApi(String cityName) async {
     try {
       print('🔍 [GEMINI] Trying for $cityName...');
       final prompt = 'What is the famous nickname for $cityName, India? Reply with ONLY 2-4 words.';
-      
+
       final response = await _model.generateContent([Content.text(prompt)]);
       final text = response.text?.trim() ?? '';
       final cleaned = text.replaceAll(RegExp(r'[\n\r]'), '').trim();
-      
+
       if (cleaned.isNotEmpty && cleaned.length < 50) {
         print('✅ [GEMINI] $cityName: $cleaned');
         return cleaned;
@@ -770,7 +771,7 @@ class GeminiService {
       print('✅ [STATIC] Food data for $cityName loaded');
       return staticData;
     }
-    
+
     // Try API for cities not in static data
     try {
       print('🔍 [API] Fetching food data for $cityName...');
@@ -1168,7 +1169,7 @@ Return ONLY the JSON array for $cityName:''';
       print('✅ [STATIC] Dress data for $state loaded');
       return staticData;
     }
-    
+
     // Try to match by city to state mapping
     final cityStateMap = {
       // Uttar Pradesh
@@ -1201,13 +1202,13 @@ Return ONLY the JSON array for $cityName:''';
       // Uttarakhand
       'Rishikesh': 'Uttarakhand', 'Haridwar': 'Uttarakhand', 'Dehradun': 'Uttarakhand',
     };
-    
+
     final mappedState = cityStateMap[cityName];
     if (mappedState != null && _stateDressData.containsKey(mappedState)) {
       print('✅ [STATIC] Dress data for $cityName (mapped to $mappedState) loaded');
       return _stateDressData[mappedState]!;
     }
-    
+
     // Try API for cities/states not in static data
     try {
       print('🔍 [API] Fetching dress data for $cityName, $state...');

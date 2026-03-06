@@ -1,15 +1,16 @@
 import 'dart:convert';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
-class UnsplashService {
-  static const String _accessKey = '-uvLy2ppQ9EaqHvrgiWsUCJqwDUU7dspx3Pcbx6PxKU';
-  static const String _baseUrl = 'https://api.unsplash.com';
+  class UnsplashService {
+    static String get _accessKey => dotenv.env['UNSPLASH_ACCESS_KEY'] ?? '';
+    static const String _baseUrl = 'https://api.unsplash.com';
 
-  // Enhanced search with fallback options
-  static Future<String?> searchImage(String query, {List<String>? fallbackQueries}) async {
-    if (_accessKey == 'AIzaSyDw4yrvHlp-pgdGjS19RR5mefh5oGt_2ck') {
-      return null;
-    }
+    static Future<String?> searchImage(String query, {List<String>? fallbackQueries}) async {
+      // A safer check to see if the key is missing
+      if (_accessKey.isEmpty) {
+        return null;
+      }
 
     try {
       // Try main query first
